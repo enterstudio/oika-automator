@@ -1,0 +1,5 @@
+target/
+*.docx
+*.ini
+*.log
+
