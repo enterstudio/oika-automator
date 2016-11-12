@@ -10,8 +10,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.fluentlenium.core.filter.FilterConstructor.withText;
+
 @PageUrl("Reunion.php5")
-public class Reunion extends OikaFluentPage {
+public class ReunionPage extends OikaFluentPage {
     public List<Regroupement> getRegroupements() {
         final List<Regroupement> regroupements = new ArrayList<>();
 
@@ -27,6 +29,10 @@ public class Reunion extends OikaFluentPage {
         }
 
         return regroupements;
+    }
+
+    public String getId() {
+        return el("table.TableInfo tr td", withText("ID Reunion")).axes().parent().el("td.TableInfoFond").text();
     }
 
     private Regroupement createRegroupement(final FluentWebElement elRegroupement) {

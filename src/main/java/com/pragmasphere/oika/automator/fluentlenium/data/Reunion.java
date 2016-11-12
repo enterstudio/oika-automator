@@ -5,13 +5,13 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.List;
+
 @Getter
 @Setter
 @ToString
 @EqualsAndHashCode
-public class Facture {
+public class Reunion {
     private String id;
-    private String numero;
-    private String clientId;
-    private FicheClient ficheClient;
+    private List<Regroupement> regroupements;
 }

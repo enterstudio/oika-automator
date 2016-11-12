@@ -4,21 +4,23 @@ import com.pragmasphere.oika.automator.commands.auth.Auth;
 import com.pragmasphere.oika.automator.fluentlenium.configuration.FluentScript;
 import com.pragmasphere.oika.automator.fluentlenium.data.FicheClient;
 import com.pragmasphere.oika.automator.fluentlenium.data.Regroupement;
-import com.pragmasphere.oika.automator.fluentlenium.po.Client;
-import com.pragmasphere.oika.automator.fluentlenium.po.ListeReunions;
+import com.pragmasphere.oika.automator.fluentlenium.data.Reunion;
+import com.pragmasphere.oika.automator.fluentlenium.po.ClientPage;
+import com.pragmasphere.oika.automator.fluentlenium.po.ListeReunionsPage;
 import com.pragmasphere.oika.automator.fluentlenium.po.MonEspaceReserve;
-import com.pragmasphere.oika.automator.fluentlenium.po.Reunion;
-import com.pragmasphere.oika.automator.fluentlenium.po.TableauDeBord;
+import com.pragmasphere.oika.automator.fluentlenium.po.ReunionPage;
+import com.pragmasphere.oika.automator.fluentlenium.po.TableauDeBordPage;
 import lombok.extern.slf4j.Slf4j;
 import org.fluentlenium.core.annotation.Page;
 
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class ClientsReunionScript extends FluentScript {
+public class ReunionScript extends FluentScript {
     private final Auth auth;
     private final String hote;
 
@@ -26,20 +28,20 @@ public class ClientsReunionScript extends FluentScript {
     private MonEspaceReserve espaceReserve;
 
     @Page
-    private TableauDeBord tableauDeBord;
+    private TableauDeBordPage tableauDeBord;
 
     @Page
-    private ListeReunions listeReunions;
+    private ListeReunionsPage listeReunions;
 
     @Page
-    private Reunion reunion;
+    private ReunionPage reunion;
 
     @Page
-    private Client client;
+    private ClientPage client;
 
-    private List<FicheClient> clients;
+    private Reunion reunionData;
 
-    public ClientsReunionScript(final Auth auth, final String hote) {
+    public ReunionScript(final Auth auth, final String hote) {
         this.auth = auth;
         this.hote = hote;
     }
@@ -59,28 +61,37 @@ public class ClientsReunionScript extends FluentScript {
         log.info("[*] Recherche de la dernière réunion de l'hôte(sse) {}", hote);
         listeReunions.lastReunion(hote);
 
-        log.info("[*] Lecture des factures associées à la réunion");
+        log.info("[*] Recherche des regroupements et factures associées à la réunion");
         final List<Regroupement> regroupements = reunion.getRegroupements();
+        log.info("[+] {} factures trouvées dans {} regroupements",
+                regroupements.stream().flatMap(r -> r.getFactures().stream()).count(), regroupements.size());
+
+        final Reunion reunionData = new Reunion();
+        reunionData.setId(reunion.getId());
+        reunionData.setRegroupements(regroupements);
 
         final Set<String> codeClients = regroupements.stream().flatMap(regroupement -> regroupement.getFactures().stream())
                 .map(facture -> facture.getClientId()).collect(Collectors.toSet());
 
-        log.info("[+] {} factures ont été trouvées", codeClients.size());
-        final List<FicheClient> clients = new ArrayList<>();
+        log.info("[+] {} clients trouvés", codeClients.size());
+        final Map<String, FicheClient> clients = new LinkedHashMap<>();
         for (final String codeClient : codeClients) {
             client.goToClient(codeClient);
             final FicheClient ficheClient = client.getFicheClient();
-            clients.add(ficheClient);
+            clients.put(codeClient, ficheClient);
             log.info("[+] {} {} ({}/{})", ficheClient.getNom(), ficheClient.getPrenom(), ficheClient.getId(),
                     ficheClient.getPassword());
         }
 
-        this.clients = clients;
+        regroupements.stream().flatMap(r -> r.getFactures().stream())
+                .forEach(f -> f.setFicheClient(clients.get(f.getClientId())));
+
+        this.reunionData = reunionData;
 
         log.info("[*] Chargement terminé");
     }
 
-    public List<FicheClient> getClients() {
-        return clients;
+    public Reunion getReunionData() {
+        return reunionData;
     }
 }

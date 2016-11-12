@@ -7,7 +7,7 @@ import org.openqa.selenium.support.FindBy;
 import static org.fluentlenium.core.filter.FilterConstructor.with;
 
 @PageUrl("ListeReunions.php5")
-public class ListeReunions extends OikaFluentPage {
+public class ListeReunionsPage extends OikaFluentPage {
 
     @FindBy(css = ".Recherche input[name='NOMHOTE']")
     private FluentWebElement nomHote;

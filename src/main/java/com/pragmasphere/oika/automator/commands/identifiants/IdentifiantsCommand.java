@@ -1,8 +1,9 @@
 package com.pragmasphere.oika.automator.commands.identifiants;
 
 import com.pragmasphere.oika.automator.commands.auth.Auth;
-import com.pragmasphere.oika.automator.fluentlenium.ClientsReunionScript;
+import com.pragmasphere.oika.automator.fluentlenium.ReunionScript;
 import com.pragmasphere.oika.automator.fluentlenium.data.FicheClient;
+import com.pragmasphere.oika.automator.fluentlenium.data.Reunion;
 import com.pragmasphere.oika.automator.persistence.PersistenceBackend;
 import com.pragmasphere.oika.automator.security.SecurityService;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +25,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static com.pragmasphere.oika.automator.custom.TableUtils.buildTable;
 
@@ -88,10 +91,13 @@ public class IdentifiantsCommand implements CommandMarker {
         }
         XWPFDocument doc = new XWPFDocument(OPCPackage.open(outputFile));
 
-        final ClientsReunionScript clientsReunionScript = new ClientsReunionScript(auth, hote);
+        final ReunionScript clientsReunionScript = new ReunionScript(auth, hote);
         clientsReunionScript.run();
 
-        final List<FicheClient> clients = clientsReunionScript.getClients();
+        final Reunion reunion = clientsReunionScript.getReunionData();
+        final LinkedHashSet<FicheClient> clients = reunion.getRegroupements().stream().flatMap(r -> r.getFactures().stream())
+                .map(f -> f.getFicheClient()).collect(Collectors.toCollection(() -> new LinkedHashSet<>()));
+
         List<FicheClient> clientsRestants = new ArrayList<>(clients);
 
         while (clientsRestants.size() > 0) {
@@ -124,7 +130,7 @@ public class IdentifiantsCommand implements CommandMarker {
         log.info("[+] Ecriture des identifiants dans le fichier {}", outputFile);
         tmpOutputFile.delete();
 
-        return buildTable(clients, "nom", "prenom", "id", "password");
+        return buildTable(new ArrayList<>(clients), "nom", "prenom", "id", "password");
     }
 
     @CliCommand(value = "config identifiants", help = "Configure la génération du fichier Word des identifiants clients")
