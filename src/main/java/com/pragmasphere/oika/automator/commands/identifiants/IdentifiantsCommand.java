@@ -47,13 +47,14 @@ public class IdentifiantsCommand implements CommandMarker {
         if (auth == null) {
             throw new IllegalStateException("[!] Login/Password non définis. Utiliser la commande <config auth>");
         }
+        auth.setPassword(security.decrypt(auth.getPassword()));
 
         Identifiants identifiants = backend.get(Identifiants.class, null);
         if (identifiants == null) {
-            identifiants = new Identifiants("modele-identifiants.docx");
+            identifiants = new Identifiants();
         }
 
-        final File templateFile = new File(identifiants.getPath());
+        final File templateFile = new File(identifiants.getTemplate());
         if (!templateFile.exists()) {
             log.info("[*] Le fichier modèle {} n'existe pas", templateFile);
 
@@ -69,37 +70,75 @@ public class IdentifiantsCommand implements CommandMarker {
             log.info("[*] Création du fichier modèle par défaut {}", templateFile);
         }
         log.info("[*] Vous pouvez modifier le fichier modèle {} pour personnaliser les fiches identifiants", templateFile);
+        final XWPFDocument templateDoc = new XWPFDocument(OPCPackage.open(templateFile));
 
-        auth.setPassword(security.decrypt(auth.getPassword()));
+        final File outputFile = new File(identifiants.getOutput());
+
+        // On a besoin de passer par un fichier Temporaire car POI plante lorsque ou écrit sur le meme fichier que le fichier
+        // ouvert
+        final File tmpOutputFile = File.createTempFile(outputFile.getName(), ".tmp");
+        tmpOutputFile.delete();
+
+        if (!outputFile.exists()) {
+            log.info("[*] Les fiches identifiants seront ajoutées dans le fichier {}", outputFile);
+            FileUtils.copyFile(templateFile, outputFile);
+        } else {
+            log.info("[*] Les fiches identifiants seront ajoutées à la suite des fiches existantes dans le fichier {}",
+                    outputFile);
+        }
+        XWPFDocument doc = new XWPFDocument(OPCPackage.open(outputFile));
 
         final ClientsReunionScript clientsReunionScript = new ClientsReunionScript(auth, hote);
         clientsReunionScript.run();
 
         final List<FicheClient> clients = clientsReunionScript.getClients();
-        List<FicheClient> clientsRestants = clientsReunionScript.getClients();
-        int i = 0;
+        List<FicheClient> clientsRestants = new ArrayList<>(clients);
 
         while (clientsRestants.size() > 0) {
-            i++;
-            final XWPFDocument doc = new XWPFDocument(OPCPackage.open(identifiants.getPath()));
-            final int count = IdentifiantsPoi.fillClient(doc, clientsRestants);
+            int count = IdentifiantsPoi.fillClient(doc, clientsRestants);
+            if (count == 0) {
+                IdentifiantsPoi.appendTemplate(doc, templateDoc);
+
+                // Reload the workbook, workaround for bug 49940
+                // https://issues.apache.org/bugzilla/show_bug.cgi?id=49940
+                doc.write(new FileOutputStream(tmpOutputFile));
+                doc.close();
+                FileUtils.copyFile(tmpOutputFile, outputFile);
+                doc = new XWPFDocument(OPCPackage.open(outputFile));
+
+                count = IdentifiantsPoi.fillClient(doc, clientsRestants);
+            }
+            if (count == 0) {
+                throw new IllegalStateException("Problème dans le modèle Word des identifiants");
+            }
             clientsRestants = new ArrayList<>(clientsRestants.subList(count, clientsRestants.size()));
-            doc.write(new FileOutputStream(hote + (i > 1 ? "_" + i : "") + ".docx"));
+
+            doc.write(new FileOutputStream(tmpOutputFile));
+            doc.close();
+            FileUtils.copyFile(tmpOutputFile, outputFile);
+            doc = new XWPFDocument(OPCPackage.open(outputFile));
         }
+
+        doc.close();
+        FileUtils.copyFile(tmpOutputFile, outputFile);
+        log.info("[+] Ecriture des identifiants dans le fichier {}", outputFile);
+        tmpOutputFile.delete();
 
         return buildTable(clients, "nom", "prenom", "id", "password");
     }
 
     @CliCommand(value = "config identifiants", help = "Configure la génération du fichier Word des identifiants clients")
     public Table auth(
-            @CliOption(key = "path", mandatory = true, help = "Chemin d'accès vers le modèle (DOCX)")
-            final String path) {
+            @CliOption(key = "template", mandatory = true, help = "Chemin d'accès vers le modèle (DOCX)")
+            final String template,
+            @CliOption(key = "output", mandatory = true, help = "Chemin d'accès vers le fichier de sortie (DOCX)")
+            final String output) {
 
-        final Identifiants identifiants = new Identifiants(path);
+        final Identifiants identifiants = new Identifiants(template, output);
 
         backend.persist(identifiants);
         backend.flush();
 
-        return buildTable(Arrays.asList(identifiants), "path");
+        return buildTable(Arrays.asList(identifiants), "template", "output");
     }
 }

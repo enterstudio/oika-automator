@@ -2,4 +2,5 @@ target/
 /*.docx
 /*.ini
 /*.log
+/*.tmp
 

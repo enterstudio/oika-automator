@@ -10,5 +10,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Identifiants {
-    private String path;
+    private String template = "modele-identifiants.docx";
+    private String output = "identifiants.docx";
 }

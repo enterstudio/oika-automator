@@ -1,12 +1,16 @@
 package com.pragmasphere.oika.automator.commands.identifiants;
 
 import com.pragmasphere.oika.automator.fluentlenium.data.FicheClient;
+import org.apache.poi.xwpf.usermodel.BreakType;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.xmlbeans.XmlException;
+import org.apache.xmlbeans.XmlOptions;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBody;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -66,6 +70,9 @@ public class IdentifiantsPoi {
     }
 
     private static boolean replace(final XWPFRun run, final String marker, final LinkedList<String> available) {
+        if (available.size() == 0) {
+            return false;
+        }
         String text = run.getText(0);
         if (text != null && text.contains(marker)) {
             text = text.replace(marker, available.pop());
@@ -73,5 +80,30 @@ public class IdentifiantsPoi {
             return true;
         }
         return false;
+    }
+
+    public static final void appendTemplate(final XWPFDocument doc, final XWPFDocument templateDoc) {
+        final XWPFParagraph paragraph = doc.createParagraph();
+        final XWPFRun run = paragraph.createRun();
+        run.addBreak(BreakType.PAGE);
+        appendBody(doc.getDocument().getBody(), templateDoc.getDocument().getBody());
+    }
+
+    private static void appendBody(final CTBody src, final CTBody append) {
+        final XmlOptions optionsOuter = new XmlOptions();
+        optionsOuter.setSaveOuter();
+        final String appendString = append.xmlText(optionsOuter);
+        final String srcString = src.xmlText();
+        final String prefix = srcString.substring(0, srcString.indexOf(">") + 1);
+        final String mainPart = srcString.substring(srcString.indexOf(">") + 1, srcString.lastIndexOf("<"));
+        final String sufix = srcString.substring(srcString.lastIndexOf("<"));
+        final String addPart = appendString.substring(appendString.indexOf(">") + 1, appendString.lastIndexOf("<"));
+        final CTBody makeBody;
+        try {
+            makeBody = CTBody.Factory.parse(prefix + mainPart + addPart + sufix);
+        } catch (final XmlException e) {
+            throw new IllegalStateException(e);
+        }
+        src.set(makeBody);
     }
 }
