@@ -1,5 +1,5 @@
 target/
-*.docx
-*.ini
-*.log
+/*.docx
+/*.ini
+/*.log
 

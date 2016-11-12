@@ -5,6 +5,9 @@ import com.pragmasphere.oika.automator.fluentlenium.ClientsReunionScript;
 import com.pragmasphere.oika.automator.fluentlenium.data.FicheClient;
 import com.pragmasphere.oika.automator.persistence.PersistenceBackend;
 import com.pragmasphere.oika.automator.security.SecurityService;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -15,8 +18,10 @@ import org.springframework.shell.core.annotation.CliOption;
 import org.springframework.shell.table.Table;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,6 +29,7 @@ import java.util.List;
 import static com.pragmasphere.oika.automator.custom.TableUtils.buildTable;
 
 @Component
+@Slf4j
 public class IdentifiantsCommand implements CommandMarker {
 
     @Autowired
@@ -39,13 +45,30 @@ public class IdentifiantsCommand implements CommandMarker {
 
         final Auth auth = backend.get(Auth.class, null);
         if (auth == null) {
-            throw new IllegalStateException("Login/Password non définis. Utiliser la commande <config auth>");
+            throw new IllegalStateException("[!] Login/Password non définis. Utiliser la commande <config auth>");
         }
 
-        final Identifiants identifiants = backend.get(Identifiants.class, null);
+        Identifiants identifiants = backend.get(Identifiants.class, null);
         if (identifiants == null) {
-            throw new IllegalStateException("Configuration non définie. Utiliser la commande <config identifiants>");
+            identifiants = new Identifiants("modele-identifiants.docx");
         }
+
+        final File templateFile = new File(identifiants.getPath());
+        if (!templateFile.exists()) {
+            log.info("[*] Le fichier modèle {} n'existe pas", templateFile);
+
+            final InputStream inputStream = getClass().getResourceAsStream("modele-identifiants.docx");
+            try {
+                FileUtils.copyInputStreamToFile(inputStream, templateFile);
+            } finally {
+                IOUtils.closeQuietly(inputStream);
+            }
+            backend.persist(identifiants);
+            backend.flush();
+
+            log.info("[*] Création du fichier modèle par défaut {}", templateFile);
+        }
+        log.info("[*] Vous pouvez modifier le fichier modèle {} pour personnaliser les fiches identifiants", templateFile);
 
         auth.setPassword(security.decrypt(auth.getPassword()));
 
