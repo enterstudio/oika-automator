@@ -12,6 +12,7 @@ import java.util.List;
 @ToString
 @EqualsAndHashCode
 public class Reunion {
+    private String technicalId;
     private String id;
     private List<Regroupement> regroupements;
 }

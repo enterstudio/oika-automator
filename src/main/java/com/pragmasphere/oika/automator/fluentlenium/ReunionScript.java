@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ReunionScript extends FluentScript {
     private final Auth auth;
-    private final String hote;
+    private final String hoteOrReunionId;
 
     @Page
     private MonEspaceReserve espaceReserve;
@@ -41,9 +41,9 @@ public class ReunionScript extends FluentScript {
 
     private Reunion reunionData;
 
-    public ReunionScript(final Auth auth, final String hote) {
+    public ReunionScript(final Auth auth, final String hoteOrReunionId) {
         this.auth = auth;
-        this.hote = hote;
+        this.hoteOrReunionId = hoteOrReunionId;
     }
 
     @Override
@@ -55,11 +55,17 @@ public class ReunionScript extends FluentScript {
 
         tableauDeBord.isAt();
 
-        log.info("[*] Affichage de la liste des réunions");
-        tableauDeBord.menu.reunions().click();
+        try {
+            Integer.parseInt(hoteOrReunionId);
+            log.info("[*] Affichage de la réunion {}", hoteOrReunionId);
+            goTo("/Reunion.php5?ID=" + hoteOrReunionId);
+        } catch (final NumberFormatException e) {
+            log.info("[*] Affichage de la liste des réunions");
+            tableauDeBord.menu.reunions().click();
 
-        log.info("[*] Recherche de la dernière réunion de l'hôte(sse) {}", hote);
-        listeReunions.lastReunion(hote);
+            log.info("[*] Recherche de la dernière réunion de l'hôte(sse) {}", hoteOrReunionId);
+            listeReunions.lastReunion(hoteOrReunionId);
+        }
 
         log.info("[*] Recherche des regroupements et factures associées à la réunion");
         final List<Regroupement> regroupements = reunion.getRegroupements();
@@ -68,6 +74,7 @@ public class ReunionScript extends FluentScript {
 
         final Reunion reunionData = new Reunion();
         reunionData.setId(reunion.getId());
+        reunionData.setTechnicalId(reunion.getTechnicalId());
         reunionData.setRegroupements(regroupements);
 
         final Set<String> codeClients = regroupements.stream().flatMap(regroupement -> regroupement.getFactures().stream())

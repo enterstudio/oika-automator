@@ -43,8 +43,9 @@ public class IdentifiantsCommand implements CommandMarker {
 
     @CliCommand(value = "identifiants", help = "Génère le fichier Word des identifiants clients")
     public Table accesFromRegroupement(
-            @CliOption(key = "", mandatory = true, help = "Hôte(sse) de la réunion")
-            final String hote) throws InvalidFormatException, IOException {
+            @CliOption(key = "", mandatory = true, help = "Hôte(sse) de la réunion ou ID Technique de la réunion (affiché dans "
+                    + "la barre d'adresse)")
+            final String hoteOrReunionId) throws InvalidFormatException, IOException {
 
         final Auth auth = backend.get(Auth.class, null);
         if (auth == null) {
@@ -91,7 +92,7 @@ public class IdentifiantsCommand implements CommandMarker {
         }
         XWPFDocument doc = new XWPFDocument(OPCPackage.open(outputFile));
 
-        final ReunionScript clientsReunionScript = new ReunionScript(auth, hote);
+        final ReunionScript clientsReunionScript = new ReunionScript(auth, hoteOrReunionId);
         clientsReunionScript.run();
 
         final Reunion reunion = clientsReunionScript.getReunionData();

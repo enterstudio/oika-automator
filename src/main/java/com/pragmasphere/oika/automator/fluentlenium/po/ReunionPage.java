@@ -35,6 +35,11 @@ public class ReunionPage extends OikaFluentPage {
         return el("table.TableInfo tr td", withText("ID Reunion")).axes().parent().el("td.TableInfoFond").text();
     }
 
+    public String getTechnicalId() {
+        return el("table.TableInfo tr td", withText("ID Reunion")).axes().parent()
+                .el("td.TableInfoFond input[name='IDReunionNetVDI']").value();
+    }
+
     private Regroupement createRegroupement(final FluentWebElement elRegroupement) {
         final Regroupement regroupement = new Regroupement();
 
