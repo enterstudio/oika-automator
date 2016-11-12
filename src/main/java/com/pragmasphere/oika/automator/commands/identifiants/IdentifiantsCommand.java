@@ -45,7 +45,7 @@ public class IdentifiantsCommand implements CommandMarker {
     public Table accesFromRegroupement(
             @CliOption(key = "", mandatory = true, help = "Hôte(sse) de la réunion ou ID Technique de la réunion (affiché dans "
                     + "la barre d'adresse)")
-            final String hoteOrReunionId) throws InvalidFormatException, IOException {
+            final String[] hotesOrReunionIds) throws InvalidFormatException, IOException {
 
         final Auth auth = backend.get(Auth.class, null);
         if (auth == null) {
@@ -92,12 +92,17 @@ public class IdentifiantsCommand implements CommandMarker {
         }
         XWPFDocument doc = new XWPFDocument(OPCPackage.open(outputFile));
 
-        final ReunionScript clientsReunionScript = new ReunionScript(auth, hoteOrReunionId);
-        clientsReunionScript.run();
+        final List<Reunion> reunions = new ArrayList<>();
+        for (final String hoteOrReunionId : hotesOrReunionIds) {
+            final ReunionScript clientsReunionScript = new ReunionScript(auth, hoteOrReunionId);
+            clientsReunionScript.run();
+            final Reunion reunion = clientsReunionScript.getReunionData();
+            reunions.add(reunion);
+        }
 
-        final Reunion reunion = clientsReunionScript.getReunionData();
-        final LinkedHashSet<FicheClient> clients = reunion.getRegroupements().stream().flatMap(r -> r.getFactures().stream())
-                .map(f -> f.getFicheClient()).collect(Collectors.toCollection(() -> new LinkedHashSet<>()));
+        final LinkedHashSet<FicheClient> clients = reunions.stream().flatMap(r -> r.getRegroupements().stream())
+                .flatMap(r -> r.getFactures().stream()).map(f -> f.getFicheClient()).filter(f -> f != null)
+                .collect(Collectors.toCollection(() -> new LinkedHashSet<>()));
 
         List<FicheClient> clientsRestants = new ArrayList<>(clients);
 

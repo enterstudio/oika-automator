@@ -14,9 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.fluentlenium.core.annotation.Page;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -77,17 +77,23 @@ public class ReunionScript extends FluentScript {
         reunionData.setTechnicalId(reunion.getTechnicalId());
         reunionData.setRegroupements(regroupements);
 
-        final Set<String> codeClients = regroupements.stream().flatMap(regroupement -> regroupement.getFactures().stream())
-                .map(facture -> facture.getClientId()).collect(Collectors.toSet());
+        final LinkedHashSet<String> codeClients = regroupements.stream()
+                .flatMap(regroupement -> regroupement.getFactures().stream().sequential()).map(facture -> facture.getClientId())
+                .collect(Collectors.toCollection(() -> new LinkedHashSet<>()));
 
         log.info("[+] {} clients trouvés", codeClients.size());
         final Map<String, FicheClient> clients = new LinkedHashMap<>();
         for (final String codeClient : codeClients) {
             client.goToClient(codeClient);
-            final FicheClient ficheClient = client.getFicheClient();
-            clients.put(codeClient, ficheClient);
-            log.info("[+] {} {} ({}/{})", ficheClient.getNom(), ficheClient.getPrenom(), ficheClient.getId(),
-                    ficheClient.getPassword());
+            if (getDriver().getCurrentUrl().endsWith("Client.php5?REF=" + codeClient)) {
+                final FicheClient ficheClient = client.getFicheClient();
+                clients.put(codeClient, ficheClient);
+                log.info("[+] {} {} ({}/{})", ficheClient.getNom(), ficheClient.getPrenom(), ficheClient.getId(),
+                        ficheClient.getPassword());
+            } else {
+                log.info("[!] Compte non client ignoré ({})", codeClient);
+            }
+
         }
 
         regroupements.stream().flatMap(r -> r.getFactures().stream())
