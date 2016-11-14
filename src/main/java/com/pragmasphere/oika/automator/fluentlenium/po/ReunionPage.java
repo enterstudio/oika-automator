@@ -4,6 +4,7 @@ import com.pragmasphere.oika.automator.fluentlenium.data.Facture;
 import com.pragmasphere.oika.automator.fluentlenium.data.Regroupement;
 import org.fluentlenium.core.annotation.PageUrl;
 import org.fluentlenium.core.domain.FluentWebElement;
+import org.openqa.selenium.NoSuchElementException;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -50,7 +51,11 @@ public class ReunionPage extends OikaFluentPage {
         final FluentWebElement dateCmde = elRegroupementInfo.el(".DateCmde");
 
         regroupement.setNumero(numCmdeNet.textContent().substring(2)); // "N°20299"
-        regroupement.setId(numCmdeMoka.textContent().substring(4, numCmdeMoka.textContent().length() - 1)); // "(ID 19633)"
+        try {
+            regroupement.setId(numCmdeMoka.textContent().substring(4, numCmdeMoka.textContent().length() - 1)); // "(ID 19633)"
+        } catch (final NoSuchElementException e) {
+        }
+
         regroupement.setDate(
                 LocalDate.parse(dateCmde.textContent().trim(), DateTimeFormatter.ofPattern("dd/MM/yyyy"))); // "05/11/2016"
 
@@ -67,7 +72,11 @@ public class ReunionPage extends OikaFluentPage {
         final FluentWebElement clientId = elDetailInfo.$("span").last();
 
         facture.setNumero(numCmdeNet.textContent().substring(2)); // "N°20299"
-        facture.setId(numCmdeMoka.textContent().substring(4, numCmdeNet.textContent().length() - 1)); // "(ID 19633)"
+        try {
+            facture.setId(numCmdeMoka.textContent().substring(4, numCmdeNet.textContent().length() - 1)); // "(ID 19633)"
+        } catch (final NoSuchElementException e) {
+        }
+
         facture.setClientId(clientId.textContent().substring(1, clientId.textContent().length() - 1));
 
         return facture;
