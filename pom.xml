@@ -207,6 +207,34 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>1.7.12</version>
+                <executions>
+                    <execution>
+                        <id>l4j-package</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>console</headerType>
+                            <outfile>target/${project.artifactId}.exe</outfile>
+                            <jar>target/${project.artifactId}.jar</jar>
+                            <errTitle>${project.artifactId}</errTitle>
+                            <downloadUrl>${project.url}/releases</downloadUrl>
+                            <supportUrl>${project.url}/issues</supportUrl>
+                            <classPath>
+                                <mainClass>com.pragmasphere.oika.automator.Main</mainClass>
+                            </classPath>
+                            <jre>
+                                <minVersion>1.8.0</minVersion>
+                            </jre>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
