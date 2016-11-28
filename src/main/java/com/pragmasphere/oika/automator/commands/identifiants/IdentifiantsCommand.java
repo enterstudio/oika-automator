@@ -2,6 +2,7 @@ package com.pragmasphere.oika.automator.commands.identifiants;
 
 import com.pragmasphere.oika.automator.commands.auth.Auth;
 import com.pragmasphere.oika.automator.fluentlenium.ReunionScript;
+import com.pragmasphere.oika.automator.fluentlenium.data.Facture;
 import com.pragmasphere.oika.automator.fluentlenium.data.FicheClient;
 import com.pragmasphere.oika.automator.fluentlenium.data.Reunion;
 import com.pragmasphere.oika.automator.persistence.PersistenceBackend;
@@ -25,8 +26,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.pragmasphere.oika.automator.custom.TableUtils.buildTable;
@@ -92,17 +96,20 @@ public class IdentifiantsCommand implements CommandMarker {
         }
         XWPFDocument doc = new XWPFDocument(OPCPackage.open(outputFile));
 
-        final List<Reunion> reunions = new ArrayList<>();
+        final Set<FicheClient> clients = new LinkedHashSet<>();
         for (final String hoteOrReunionId : hotesOrReunionIds) {
             final ReunionScript clientsReunionScript = new ReunionScript(auth, hoteOrReunionId);
             clientsReunionScript.run();
             final Reunion reunion = clientsReunionScript.getReunionData();
-            reunions.add(reunion);
-        }
 
-        final LinkedHashSet<FicheClient> clients = reunions.stream().flatMap(r -> r.getRegroupements().stream())
-                .flatMap(r -> r.getFactures().stream()).map(f -> f.getFicheClient()).filter(f -> f != null)
-                .collect(Collectors.toCollection(() -> new LinkedHashSet<>()));
+            // On trie les factures de chaque regroupement par nom de client.
+            final List<FicheClient> clientsReunion = reunion.getRegroupements().stream()
+                    .flatMap(r -> r.getFactures().stream()).map(Facture::getFicheClient).filter(Objects::nonNull)
+                    .sorted(Comparator.comparing(FicheClient::getNom))
+                    .collect(Collectors.toList());
+
+            clients.addAll(clientsReunion);
+        }
 
         List<FicheClient> clientsRestants = new ArrayList<>(clients);
 
