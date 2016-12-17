@@ -1,7 +1,7 @@
 package com.pragmasphere.oika.automator.fluentlenium.po;
 
 import com.pragmasphere.oika.automator.commands.auth.Auth;
-import com.pragmasphere.oika.automator.fluentlenium.configuration.FluentPage;
+import org.fluentlenium.core.FluentPage;
 import org.fluentlenium.core.annotation.PageUrl;
 import org.fluentlenium.core.domain.FluentWebElement;
 import org.openqa.selenium.support.FindBy;

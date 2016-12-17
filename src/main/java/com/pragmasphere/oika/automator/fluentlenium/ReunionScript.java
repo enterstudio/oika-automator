@@ -12,6 +12,8 @@ import com.pragmasphere.oika.automator.fluentlenium.po.ReunionPage;
 import com.pragmasphere.oika.automator.fluentlenium.po.TableauDeBordPage;
 import lombok.extern.slf4j.Slf4j;
 import org.fluentlenium.core.annotation.Page;
+import org.openqa.selenium.NoAlertPresentException;
+import org.openqa.selenium.UnhandledAlertException;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -47,7 +49,7 @@ public class ReunionScript extends FluentScript {
     }
 
     @Override
-    protected void runScript() {
+    protected void doRun() {
         espaceReserve.go();
 
         log.info("[*] Connexion {}/********", auth.getLogin());
@@ -66,6 +68,8 @@ public class ReunionScript extends FluentScript {
             log.info("[*] Recherche de la dernière réunion de l'hôte(sse) {}", hoteOrReunionId);
             listeReunions.lastReunion(hoteOrReunionId);
         }
+
+        reunion.isAt();
 
         log.info("[*] Recherche des regroupements et factures associées à la réunion");
         final List<Regroupement> regroupements = reunion.getRegroupements();
@@ -86,7 +90,15 @@ public class ReunionScript extends FluentScript {
         for (final String codeClient : codeClients) {
             client.goToClient(codeClient);
             if (getDriver().getCurrentUrl().endsWith("Client.php5?REF=" + codeClient)) {
-                final FicheClient ficheClient = client.getFicheClient();
+                FicheClient ficheClient;
+                try {
+                    ficheClient = client.getFicheClient();
+                } catch (UnhandledAlertException | NullPointerException e) {
+                    // Workaround à cause d'un bug du site oikaoika qui provoque une alerte.
+                    alert().dismiss();
+                    ficheClient = client.getFicheClient();
+                }
+
                 clients.put(codeClient, ficheClient);
                 log.info("[+] {} {} ({}/{})", ficheClient.getNom(), ficheClient.getPrenom(), ficheClient.getId(),
                         ficheClient.getPassword());

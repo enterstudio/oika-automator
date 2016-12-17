@@ -1,7 +1,7 @@
 package com.pragmasphere.oika.automator.fluentlenium.po;
 
-import com.pragmasphere.oika.automator.fluentlenium.configuration.FluentPage;
 import com.pragmasphere.oika.automator.fluentlenium.widget.Menu;
+import org.fluentlenium.core.FluentPage;
 import org.openqa.selenium.support.FindBy;
 
 public class OikaFluentPage extends FluentPage {

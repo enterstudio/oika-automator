@@ -5,7 +5,7 @@ import org.fluentlenium.configuration.ConfigurationDefaults;
 public class Configuration extends ConfigurationDefaults {
     @Override
     public String getBaseUrl() {
-        return "https://www.moncomptevdi.fr/oikaoika";
+        return "www.moncomptevdi.fr/oikaoika";
     }
 
     @Override
