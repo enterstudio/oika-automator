@@ -3,8 +3,10 @@ package com.pragmasphere.oika.automator.fluentlenium.po;
 import com.pragmasphere.oika.automator.fluentlenium.data.Facture;
 import com.pragmasphere.oika.automator.fluentlenium.data.Regroupement;
 import org.fluentlenium.core.annotation.PageUrl;
+import org.fluentlenium.core.domain.FluentList;
 import org.fluentlenium.core.domain.FluentWebElement;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.TimeoutException;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -18,7 +20,14 @@ public class ReunionPage extends OikaFluentPage {
     public List<Regroupement> getRegroupements() {
         final List<Regroupement> regroupements = new ArrayList<>();
 
-        for (final FluentWebElement elRegroupement : $("table.LstCde tr.TableInfo.LignePrincipale")) {
+        FluentList<FluentWebElement> regroupementSelector;
+        try {
+            regroupementSelector = $("table.LstCde tr.TableInfo.LignePrincipale").now();
+        } catch (NoSuchElementException | TimeoutException e) {
+            return regroupements;
+        }
+
+        for (final FluentWebElement elRegroupement : regroupementSelector) {
             final Regroupement regroupement = createRegroupement(elRegroupement);
             regroupements.add(regroupement);
 
